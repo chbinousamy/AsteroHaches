@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Astéro-Hache vs Arachnides</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Creepster&family=Oswald:wght@300;700&display=swap');
+
+  :root {
+    --bg: #0a0005;
+    --deep: #110010;
+    --spider-red: #c0392b;
+    --web-silver: #c8b8d8;
+    --axe-gold: #f39c12;
+    --axe-shine: #ffd700;
+    --glow-purple: #8e44ad;
+    --glow-green: #27ae60;
+    --text: #e8d5f5;
+    --ui-border: #5a2d72;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Oswald', sans-serif;
+    overflow: hidden;
+  }
+
+  #stars {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #title {
+    font-family: 'Creepster', cursive;
+    font-size: 2.2rem;
+    letter-spacing: 3px;
+    color: var(--axe-gold);
+    text-shadow: 0 0 18px #f39c12aa, 0 0 40px #f39c1255;
+    animation: titlePulse 3s ease-in-out infinite;
+  }
+
+  @keyframes titlePulse {
+    0%,100% { text-shadow: 0 0 18px #f39c12aa, 0 0 40px #f39c1255; }
+    50% { text-shadow: 0 0 30px #f39c12ff, 0 0 70px #f39c1299; }
+  }
+
+  #hud {
+    display: flex;
+    gap: 40px;
+    font-size: 1.1rem;
+    color: var(--text);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  #hud span { color: var(--axe-gold); font-weight: 700; }
+
+  canvas {
+    display: block;
+    border: 2px solid var(--ui-border);
+    box-shadow: 0 0 30px #8e44ad66, 0 0 80px #8e44ad22, inset 0 0 40px #00000088;
+    background: transparent;
+    image-rendering: pixelated;
+  }
+
+  #controls {
+    display: flex;
+    gap: 16px;
+    margin-top: 4px;
+  }
+
+  .ctrl-hint {
+    font-size: 0.75rem;
+    color: #7a5a8a;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .ctrl-hint kbd {
+    display: inline-block;
+    padding: 2px 7px;
+    border: 1px solid #5a2d72;
+    border-radius: 4px;
+    color: var(--web-silver);
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.8rem;
+    background: #1a0a22;
+  }
+
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0a000599;
+    z-index: 10;
+    gap: 20px;
+  }
+
+  #overlay h2 {
+    font-family: 'Creepster', cursive;
+    font-size: 3rem;
+    color: var(--axe-gold);
+    text-shadow: 0 0 20px #f39c12cc;
+    letter-spacing: 4px;
+  }
+
+  #overlay p {
+    color: var(--text);
+    font-size: 1rem;
+    letter-spacing: 2px;
+    text-align: center;
+    line-height: 2;
+    opacity: 0.85;
+  }
+
+  #overlay button {
+    padding: 12px 40px;
+    font-family: 'Creepster', cursive;
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+    background: transparent;
+    border: 2px solid var(--axe-gold);
+    color: var(--axe-gold);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-shadow: 0 0 10px #f39c12aa;
+    box-shadow: 0 0 15px #f39c1244;
+  }
+
+  #overlay button:hover {
+    background: #f39c1222;
+    box-shadow: 0 0 30px #f39c1299;
+    transform: scale(1.05);
+  }
+
+  .lives-icon { color: var(--axe-gold); font-size: 1.2rem; }
+
+  /* Mobile buttons */
+  #mobile-btns {
+    display: none;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .mbtn {
+    width: 64px; height: 64px;
+    border: 2px solid var(--ui-border);
+    background: #1a0a22cc;
+    color: var(--axe-gold);
+    font-size: 1.6rem;
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    box-shadow: 0 0 10px #8e44ad44;
+  }
+
+  @media (pointer: coarse) {
+    #mobile-btns { display: flex; }
+    .ctrl-hint { display: none; }
+  }
+</style>
+<!--
+  ================================================================
+  SNIPPET PWA — Astéro-Hache vs Arachnides
+  Colle ce bloc dans le <head> de ton index.html
+  ================================================================
+-->
+
+<!-- 1. Lien vers le manifest PWA -->
+<link rel="manifest" href="manifest.json">
+
+<!-- 2. Couleur de la barre du navigateur sur mobile -->
+<meta name="theme-color" content="#000011">
+
+<!-- 3. Comportement plein écran sur iOS (Safari) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Astéro-Hache">
+
+<!-- 4. Icône pour iOS (Apple Touch Icon) -->
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+
+<canvas id="stars-canvas" id="stars" style="position:fixed;inset:0;pointer-events:none;z-index:0;"></canvas>
+
+<div id="wrapper">
+  <div id="title">⚔️ ASTÉRO-HACHE ⚔️</div>
+  <div id="hud">
+    <div>Score : <span id="score-display">0</span></div>
+    <div>Vies : <span id="lives-display">❤️❤️❤️</span></div>
+    <div>Vague : <span id="wave-display">1</span></div>
+  </div>
+
+  <div style="position:relative;">
+    <canvas id="game" width="640" height="480"></canvas>
+    <div id="overlay">
+      <h2 id="overlay-title">ASTÉRO-HACHE</h2>
+      <p id="overlay-msg">Lancez des haches sur les Arachnides !<br>
+        ← → pour bouger &nbsp;|&nbsp; ESPACE pour tirer</p>
+      <button id="overlay-btn">COMMENCER</button>
+    </div>
+  </div>
+
+  <div id="mobile-btns">
+    <button class="mbtn" id="btn-left">◀</button>
+    <button class="mbtn" id="btn-fire">🪓</button>
+    <button class="mbtn" id="btn-right">▶</button>
+  </div>
+
+  <div id="controls" class="ctrl-hint">
+    <span><kbd>←</kbd><kbd>→</kbd> déplacer</span>
+    <span><kbd>ESPACE</kbd> lancer hache</span>
+  </div>
+</div>
+
+<script>
+// ─── Stars background ───────────────────────────────────────────────
+const starsC = document.getElementById('stars-canvas') || (() => {
+  const c = document.createElement('canvas');
+  c.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:0;';
+  document.body.prepend(c);
+  return c;
+})();
+const starsCtx = starsC.getContext('2d');
+let stars = [];
+function initStars() {
+  starsC.width = window.innerWidth;
+  starsC.height = window.innerHeight;
+  stars = Array.from({length: 160}, () => ({
+    x: Math.random() * starsC.width,
+    y: Math.random() * starsC.height,
+    r: Math.random() * 1.5 + 0.3,
+    a: Math.random(),
+    da: (Math.random() - 0.5) * 0.01
+  }));
+}
+function drawStars() {
+  starsCtx.clearRect(0, 0, starsC.width, starsC.height);
+  for (const s of stars) {
+    s.a += s.da;
+    if (s.a <= 0 || s.a >= 1) s.da *= -1;
+    starsCtx.globalAlpha = s.a * 0.8;
+    starsCtx.fillStyle = '#d8c0f8';
+    starsCtx.beginPath();
+    starsCtx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    starsCtx.fill();
+  }
+  starsCtx.globalAlpha = 1;
+  requestAnimationFrame(drawStars);
+}
+initStars();
+drawStars();
+window.addEventListener('resize', initStars);
+
+// ─── Game ────────────────────────────────────────────────────────────
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const scoreEl = document.getElementById('score-display');
+const livesEl = document.getElementById('lives-display');
+const waveEl = document.getElementById('wave-display');
+const overlay = document.getElementById('overlay');
+const overlayTitle = document.getElementById('overlay-title');
+const overlayMsg = document.getElementById('overlay-msg');
+const overlayBtn = document.getElementById('overlay-btn');
+
+let state = 'menu'; // menu | playing | gameover | win
+let score, lives, wave, highScore = 0;
+let player, axes, spiders, bombs, particles, webs;
+let keys = {};
+let lastShot = 0;
+let spiderDir = 1;
+let spiderMoveTimer = 0;
+let animFrame;
+let lastTime = 0;
+
+// ─── Drawings ───────────────────────────────────────────────────────
+
+function drawAxe(x, y, angle) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  // Handle
+  ctx.strokeStyle = '#8B5E3C';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, -14);
+  ctx.lineTo(0, 10);
+  ctx.stroke();
+  // Blade
+  ctx.fillStyle = '#f0c040';
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, -14);
+  ctx.bezierCurveTo(-12, -20, -14, -6, 0, -2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // Shine
+  ctx.strokeStyle = '#fff8';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-4, -16);
+  ctx.lineTo(-8, -10);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawSpider(x, y, size, t) {
+  ctx.save();
+  ctx.translate(x, y);
+  const legAnim = Math.sin(t * 0.008) * 0.3;
+
+  // Legs (4 pairs)
+  const legConfigs = [
+    [-0.8, -0.4, -1.5, -1.2],
+    [-0.5, 0,   -1.4, 0.2],
+    [0.5, 0,    1.4, 0.2],
+    [0.8, -0.4, 1.5, -1.2],
+    [-0.9, 0.3, -1.4, 1.0],
+    [0.9, 0.3,  1.4, 1.0],
+    [-0.6, 0.6, -1.0, 1.5],
+    [0.6, 0.6,  1.0, 1.5],
+  ];
+  ctx.strokeStyle = '#7a2d2d';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 8; i++) {
+    const [x1,y1,x2,y2] = legConfigs[i];
+    const off = (i % 2 === 0 ? legAnim : -legAnim);
+    ctx.beginPath();
+    ctx.moveTo(x1 * size, y1 * size);
+    ctx.lineTo(x2 * size, (y2 + off) * size);
+    ctx.stroke();
+  }
+
+  // Abdomen (rear)
+  const grad = ctx.createRadialGradient(0.3*size, -0.2*size, 0, 0, 0, size*1.1);
+  grad.addColorStop(0, '#c0392b');
+  grad.addColorStop(0.5, '#8B0000');
+  grad.addColorStop(1, '#3d0000');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(0, 0.3*size, size*0.85, size*1.0, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Abdomen pattern
+  ctx.fillStyle = '#c0392b88';
+  ctx.beginPath();
+  ctx.ellipse(0, 0.2*size, size*0.35, size*0.45, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Cephalothorax (head)
+  const hgrad = ctx.createRadialGradient(0, -size*0.65, 0, 0, -size*0.65, size*0.6);
+  hgrad.addColorStop(0, '#a93226');
+  hgrad.addColorStop(1, '#5a0a0a');
+  ctx.fillStyle = hgrad;
+  ctx.beginPath();
+  ctx.ellipse(0, -size*0.65, size*0.55, size*0.5, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // 8 eyes (2 rows of 4)
+  const eyePositions = [
+    [-0.35, -0.85], [-0.12, -0.92], [0.12, -0.92], [0.35, -0.85],
+    [-0.25, -0.68], [-0.08, -0.72], [0.08, -0.72], [0.25, -0.68],
+  ];
+  for (let i = 0; i < 8; i++) {
+    const [ex, ey] = eyePositions[i];
+    ctx.fillStyle = i < 4 ? '#ff4444' : '#ff9900';
+    ctx.beginPath();
+    ctx.arc(ex * size, ey * size, size * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(ex * size + size*0.02, ey * size - size*0.02, size * 0.025, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Fangs
+  ctx.strokeStyle = '#ff8888';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-0.15*size, -size*1.12);
+  ctx.lineTo(-0.22*size, -size*1.28);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0.15*size, -size*1.12);
+  ctx.lineTo(0.22*size, -size*1.28);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawPlayer(x, y) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Glow
+  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 28);
+  glow.addColorStop(0, '#8e44ad33');
+  glow.addColorStop(1, 'transparent');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(0, 0, 28, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body — hooded figure / hunter silhouette
+  ctx.fillStyle = '#2c1654';
+  ctx.beginPath();
+  ctx.moveTo(-16, 18);
+  ctx.lineTo(-10, 18);
+  ctx.lineTo(-8, 4);
+  ctx.lineTo(-4, 0);
+  ctx.lineTo(4, 0);
+  ctx.lineTo(8, 4);
+  ctx.lineTo(10, 18);
+  ctx.lineTo(16, 18);
+  ctx.lineTo(12, -2);
+  ctx.lineTo(8, -8);
+  ctx.lineTo(5, -18);
+  ctx.lineTo(0, -20);
+  ctx.lineTo(-5, -18);
+  ctx.lineTo(-8, -8);
+  ctx.lineTo(-12, -2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Cloak highlights
+  ctx.strokeStyle = '#7a4fb5';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-8, -8); ctx.lineTo(-12, 18);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(8, -8); ctx.lineTo(12, 18);
+  ctx.stroke();
+
+  // Face glowing eyes
+  ctx.fillStyle = '#f39c12';
+  ctx.shadowColor = '#f39c12';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(-4, -10, 2.5, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(4, -10, 2.5, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Arm holding axe
+  ctx.strokeStyle = '#5a3080';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(10, 0);
+  ctx.lineTo(22, -8);
+  ctx.stroke();
+
+  ctx.restore();
+
+  // Mini axe in hand
+  drawAxe(x + 22, y - 8, -0.5);
+}
+
+function drawWebParticle(x, y, radius, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = '#c8b8d8';
+  ctx.lineWidth = 0.8;
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+    ctx.stroke();
+  }
+  for (let r = radius * 0.3; r <= radius; r += radius * 0.3) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ─── Particle system ─────────────────────────────────────────────────
+
+function spawnParticles(x, y, color, count = 12) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 3 + 1;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1,
+      decay: Math.random() * 0.04 + 0.02,
+      color,
+      r: Math.random() * 4 + 2
+    });
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.08;
+    p.life -= p.decay;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ─── Web projectile (spider shoots) ─────────────────────────────────
+
+function drawWebBomb(x, y) {
+  ctx.save();
+  ctx.fillStyle = '#c8b8d8';
+  ctx.shadowColor = '#c8b8d8';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(x, y, 5, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#9888b8';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x-5, y); ctx.lineTo(x+5, y);
+  ctx.moveTo(x, y-5); ctx.lineTo(x, y+5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ─── Init / reset ────────────────────────────────────────────────────
+
+function initGame() {
+  score = 0;
+  lives = 3;
+  wave = 1;
+  particles = [];
+  webs = [];
+  startWave();
+}
+
+function startWave() {
+  axes = [];
+  bombs = [];
+  particles = [];
+  lastShot = 0;
+  spiderDir = 1;
+  spiderMoveTimer = 0;
+
+  const cols = 10, rows = Math.min(3 + wave, 5);
+  spiders = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const size = 16 - r * 0.5;
+      spiders.push({
+        x: 60 + c * 56,
+        y: 60 + r * 60,
+        size,
+        alive: true,
+        row: r,
+        col: c,
+        hp: r === 0 ? 2 : 1,
+        hitFlash: 0
+      });
+    }
+  }
+
+  player = { x: W / 2, y: H - 36, speed: 220 };
+  updateHUD();
+  waveEl.textContent = wave;
+}
+
+function updateHUD() {
+  scoreEl.textContent = score;
+  livesEl.textContent = '❤️'.repeat(lives);
+}
+
+// ─── Main loop ───────────────────────────────────────────────────────
+
+function gameLoop(ts) {
+  if (!lastTime) lastTime = ts;
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Starfield within canvas
+  ctx.fillStyle = '#0a0005';
+  ctx.fillRect(0, 0, W, H);
+
+  if (state === 'playing') {
+    update(dt, ts);
+  }
+  render(ts);
+
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+function update(dt, ts) {
+  // Player movement
+  if (keys['ArrowLeft'] || keys['a']) player.x -= player.speed * dt;
+  if (keys['ArrowRight'] || keys['d']) player.x += player.speed * dt;
+  player.x = Math.max(20, Math.min(W - 20, player.x));
+
+  // Shoot
+  if ((keys[' '] || keys['Space']) && ts - lastShot > 350) {
+    axes.push({ x: player.x + 22, y: player.y - 8, angle: 0, vy: -420 });
+    lastShot = ts;
+  }
+
+  // Update axes (spinning)
+  for (let i = axes.length - 1; i >= 0; i--) {
+    const a = axes[i];
+    a.y += a.vy * dt;
+    a.angle += 8 * dt;
+    if (a.y < -20) { axes.splice(i, 1); continue; }
+
+    // Hit spider?
+    let hit = false;
+    for (const sp of spiders) {
+      if (!sp.alive) continue;
+      const dx = a.x - sp.x, dy = a.y - sp.y;
+      if (Math.abs(dx) < sp.size * 1.2 && Math.abs(dy) < sp.size * 1.3) {
+        sp.hp--;
+        sp.hitFlash = 0.3;
+        spawnParticles(sp.x, sp.y, '#c0392b', 8);
+        if (sp.hp <= 0) {
+          sp.alive = false;
+          score += (sp.row === 0 ? 30 : sp.row === 1 ? 20 : 10);
+          spawnParticles(sp.x, sp.y, '#c0392b', 20);
+          spawnParticles(sp.x, sp.y, '#ff8800', 10);
+          updateHUD();
+        }
+        axes.splice(i, 1);
+        hit = true;
+        break;
+      }
+    }
+    if (hit) continue;
+  }
+
+  // Spider movement
+  spiderMoveTimer -= dt;
+  const alive = spiders.filter(s => s.alive);
+  if (alive.length === 0) {
+    wave++;
+    state = 'wave';
+    setTimeout(() => {
+      startWave();
+      state = 'playing';
+    }, 1500);
+    return;
+  }
+
+  const speed = 20 + (10 - alive.length) * 1.5 + wave * 3;
+  if (spiderMoveTimer <= 0) {
+    spiderMoveTimer = 0.6 / (1 + alive.length * 0.03 + wave * 0.1);
+    const maxX = Math.max(...alive.map(s => s.x));
+    const minX = Math.min(...alive.map(s => s.x));
+    if (spiderDir === 1 && maxX > W - 40) {
+      spiderDir = -1;
+      for (const s of spiders) s.y += 18;
+    } else if (spiderDir === -1 && minX < 40) {
+      spiderDir = 1;
+      for (const s of spiders) s.y += 18;
+    }
+    for (const s of spiders) s.x += spiderDir * (8 + wave);
+  }
+
+  // Spider bombs
+  if (Math.random() < 0.008 * (1 + wave * 0.3) && alive.length > 0) {
+    const shooter = alive[Math.floor(Math.random() * alive.length)];
+    // Only bottom-most in column
+    const col = shooter.col;
+    const colAlive = alive.filter(s => s.col === col);
+    if (colAlive.length > 0) {
+      const bottom = colAlive.reduce((a, b) => a.y > b.y ? a : b);
+      bombs.push({ x: bottom.x, y: bottom.y, vy: 180 + wave * 20 });
+    }
+  }
+
+  // Update bombs
+  for (let i = bombs.length - 1; i >= 0; i--) {
+    const b = bombs[i];
+    b.y += b.vy * dt;
+    if (b.y > H + 10) { bombs.splice(i, 1); continue; }
+
+    // Hit player?
+    const dx = b.x - player.x, dy = b.y - player.y;
+    if (Math.abs(dx) < 20 && Math.abs(dy) < 22) {
+      lives--;
+      spawnParticles(player.x, player.y, '#8e44ad', 20);
+      updateHUD();
+      bombs.splice(i, 1);
+      if (lives <= 0) {
+        state = 'gameover';
+        if (score > highScore) highScore = score;
+        showOverlay('GAME OVER', `Score : ${score}\nRecord : ${highScore}`, 'REJOUER');
+      }
+      continue;
+    }
+  }
+
+  // Spider reaches bottom?
+  for (const sp of alive) {
+    if (sp.y > H - 60) {
+      state = 'gameover';
+      if (score > highScore) highScore = score;
+      showOverlay('INVASION !', `Les Arachnides ont envahi la Terre !\nScore : ${score}  Record : ${highScore}`, 'REJOUER');
+      return;
+    }
+  }
+}
+
+function render(ts) {
+  // Ground line
+  ctx.strokeStyle = '#3d1054';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 12);
+  ctx.lineTo(W, H - 12);
+  ctx.stroke();
+
+  // Axes
+  for (const a of axes) drawAxe(a.x, a.y, a.angle);
+
+  // Bombs
+  for (const b of bombs) drawWebBomb(b.x, b.y);
+
+  // Spiders
+  for (const sp of spiders) {
+    if (!sp.alive) continue;
+    if (sp.hitFlash > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, sp.size * 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      sp.hitFlash -= 0.05;
+    }
+    drawSpider(sp.x, sp.y, sp.size, ts);
+    // HP indicator for top row
+    if (sp.row === 0 && sp.hp === 2) {
+      ctx.fillStyle = '#ff4444';
+      ctx.font = 'bold 9px Oswald';
+      ctx.textAlign = 'center';
+      ctx.fillText('❤️', sp.x, sp.y - sp.size * 1.6);
+    }
+  }
+
+  // Player
+  if (state === 'playing' || state === 'wave') {
+    drawPlayer(player.x, player.y);
+  }
+
+  // Particles
+  updateParticles();
+
+  // Wave banner
+  if (state === 'wave') {
+    ctx.save();
+    ctx.fillStyle = '#f39c12cc';
+    ctx.font = 'bold 36px Creepster';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#f39c12';
+    ctx.shadowBlur = 20;
+    ctx.fillText(`VAGUE ${wave}`, W/2, H/2);
+    ctx.restore();
+  }
+}
+
+// ─── Overlay ─────────────────────────────────────────────────────────
+
+function showOverlay(title, msg, btn) {
+  overlayTitle.textContent = title;
+  overlayMsg.innerHTML = msg.replace(/\n/g, '<br>');
+  overlayBtn.textContent = btn;
+  overlay.style.display = 'flex';
+}
+
+overlayBtn.addEventListener('click', () => {
+  overlay.style.display = 'none';
+  initGame();
+  state = 'playing';
+  lastTime = 0;
+});
+
+// ─── Input ───────────────────────────────────────────────────────────
+
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (e.key === ' ') e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// Mobile
+const btnLeft = document.getElementById('btn-left');
+const btnRight = document.getElementById('btn-right');
+const btnFire = document.getElementById('btn-fire');
+
+btnLeft.addEventListener('touchstart', e => { keys['ArrowLeft'] = true; e.preventDefault(); }, {passive:false});
+btnLeft.addEventListener('touchend', () => keys['ArrowLeft'] = false);
+btnRight.addEventListener('touchstart', e => { keys['ArrowRight'] = true; e.preventDefault(); }, {passive:false});
+btnRight.addEventListener('touchend', () => keys['ArrowRight'] = false);
+btnFire.addEventListener('touchstart', e => { keys[' '] = true; e.preventDefault(); }, {passive:false});
+btnFire.addEventListener('touchend', () => keys[' '] = false);
+
+// ─── Start ───────────────────────────────────────────────────────────
+
+initGame();
+requestAnimationFrame(gameLoop);
+</script>
+<script>
+  // Enregistrement du Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(registration => {
+          console.log('[PWA] Service Worker enregistré :', registration.scope);
+        })
+        .catch(error => {
+          console.error('[PWA] Échec enregistrement Service Worker :', error);
+        });
+    });
+  }
+
+  // Bouton d'installation personnalisé (optionnel)
+  // Affiche un bouton "Installer le jeu" si Chrome le propose
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+
+    // Crée un bouton d'install discret
+    const installBtn = document.createElement('button');
+    installBtn.textContent = '📲 Installer le jeu';
+    installBtn.style.cssText = `
+      position: fixed; bottom: 16px; right: 16px;
+      background: #1a1a2e; color: #00ffcc;
+      border: 1px solid #00ffcc; border-radius: 8px;
+      padding: 10px 16px; font-size: 14px;
+      cursor: pointer; z-index: 9999;
+      font-family: monospace;
+    `;
+    document.body.appendChild(installBtn);
+
+    installBtn.addEventListener('click', () => {
+      installBtn.remove();
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(choice => {
+        console.log('[PWA] Installation :', choice.outcome);
+        deferredPrompt = null;
+      });
+    });
+  });
+
+  // Cache le bouton si l'app est déjà installée
+  window.addEventListener('appinstalled', () => {
+    console.log('[PWA] Application installée avec succès !');
+    deferredPrompt = null;
+  });
+</script>
+
+</body>
+</html>
