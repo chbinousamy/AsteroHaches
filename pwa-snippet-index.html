@@ -1,0 +1,76 @@
+<!--
+  ================================================================
+  SNIPPET PWA — Astéro-Hache vs Arachnides
+  Colle ce bloc dans le <head> de ton index.html
+  ================================================================
+-->
+
+<!-- 1. Lien vers le manifest PWA -->
+<link rel="manifest" href="manifest.json">
+
+<!-- 2. Couleur de la barre du navigateur sur mobile -->
+<meta name="theme-color" content="#000011">
+
+<!-- 3. Comportement plein écran sur iOS (Safari) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Astéro-Hache">
+
+<!-- 4. Icône pour iOS (Apple Touch Icon) -->
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<!--
+  ================================================================
+  SNIPPET PWA — Colle ce bloc juste avant </body> dans ton index.html
+  ================================================================
+-->
+<script>
+  // Enregistrement du Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(registration => {
+          console.log('[PWA] Service Worker enregistré :', registration.scope);
+        })
+        .catch(error => {
+          console.error('[PWA] Échec enregistrement Service Worker :', error);
+        });
+    });
+  }
+
+  // Bouton d'installation personnalisé (optionnel)
+  // Affiche un bouton "Installer le jeu" si Chrome le propose
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+
+    // Crée un bouton d'install discret
+    const installBtn = document.createElement('button');
+    installBtn.textContent = '📲 Installer le jeu';
+    installBtn.style.cssText = `
+      position: fixed; bottom: 16px; right: 16px;
+      background: #1a1a2e; color: #00ffcc;
+      border: 1px solid #00ffcc; border-radius: 8px;
+      padding: 10px 16px; font-size: 14px;
+      cursor: pointer; z-index: 9999;
+      font-family: monospace;
+    `;
+    document.body.appendChild(installBtn);
+
+    installBtn.addEventListener('click', () => {
+      installBtn.remove();
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(choice => {
+        console.log('[PWA] Installation :', choice.outcome);
+        deferredPrompt = null;
+      });
+    });
+  });
+
+  // Cache le bouton si l'app est déjà installée
+  window.addEventListener('appinstalled', () => {
+    console.log('[PWA] Application installée avec succès !');
+    deferredPrompt = null;
+  });
+</script>

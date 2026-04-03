@@ -1,0 +1,208 @@
+<!--
+  ================================================================
+  generate-icons.html — Génère toutes les icônes PWA pour Astéro-Hache
+  Ouvre ce fichier dans Chrome, clique le bouton, télécharge les icônes
+  ================================================================
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Générateur d'icônes PWA — Astéro-Hache</title>
+  <style>
+    body { background: #000011; color: #00ffcc; font-family: monospace; padding: 20px; }
+    canvas { border: 1px solid #00ffcc; margin: 8px; }
+    button {
+      background: #00ffcc; color: #000011; border: none;
+      padding: 12px 24px; font-size: 16px; font-family: monospace;
+      cursor: pointer; border-radius: 6px; margin: 8px 4px;
+    }
+    #status { margin-top: 16px; color: #ffcc00; }
+  </style>
+</head>
+<body>
+  <h2>🪓 Générateur d'icônes PWA — Astéro-Hache vs Arachnides</h2>
+  <p>Clique sur "Générer & Télécharger" pour obtenir tous les fichiers icône.</p>
+  <button onclick="generateAll()">🎨 Générer & Télécharger toutes les icônes</button>
+  <div id="previews"></div>
+  <div id="status"></div>
+
+  <script>
+    const SIZES = [72, 96, 128, 192, 512];
+
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      const s = size;
+
+      // Fond spatial
+      ctx.fillStyle = '#000011';
+      ctx.fillRect(0, 0, s, s);
+
+      // Étoiles
+      ctx.fillStyle = '#ffffff';
+      const starCount = Math.floor(s * 0.3);
+      for (let i = 0; i < starCount; i++) {
+        const x = Math.random() * s;
+        const y = Math.random() * s;
+        const r = Math.random() * (s * 0.005) + 0.5;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Halo central
+      const grad = ctx.createRadialGradient(s/2, s/2, 0, s/2, s/2, s * 0.45);
+      grad.addColorStop(0, 'rgba(0, 255, 204, 0.15)');
+      grad.addColorStop(1, 'rgba(0, 0, 17, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, s, s);
+
+      // Hache (axe) — dessin vectoriel scalable
+      const cx = s / 2;
+      const cy = s / 2;
+      const u = s / 100; // unité de base
+
+      // Manche
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-Math.PI / 4);
+      ctx.fillStyle = '#8B5E3C';
+      ctx.beginPath();
+      ctx.roundRect(-u * 3, -u * 30, u * 6, u * 55, u * 2);
+      ctx.fill();
+
+      // Lame
+      ctx.fillStyle = '#c0c0c0';
+      ctx.strokeStyle = '#00ffcc';
+      ctx.lineWidth = u * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-u * 3, -u * 28);
+      ctx.lineTo(-u * 22, -u * 38);
+      ctx.lineTo(-u * 28, -u * 18);
+      ctx.lineTo(-u * 3, -u * 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Reflet lame
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.beginPath();
+      ctx.moveTo(-u * 5, -u * 26);
+      ctx.lineTo(-u * 18, -u * 34);
+      ctx.lineTo(-u * 12, -u * 20);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // Arachnide simplifié (araignée stylisée en haut à droite)
+      const spx = s * 0.72, spy = s * 0.22;
+      const sr = s * 0.08;
+      ctx.fillStyle = '#8800ff';
+      ctx.strokeStyle = '#cc44ff';
+      ctx.lineWidth = u * 1.2;
+
+      // Corps
+      ctx.beginPath();
+      ctx.arc(spx, spy, sr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Pattes (4 de chaque côté)
+      const legAngles = [-60, -30, 30, 60];
+      legAngles.forEach(angle => {
+        const rad = angle * Math.PI / 180;
+        // Gauche
+        ctx.beginPath();
+        ctx.moveTo(spx - sr, spy);
+        ctx.lineTo(spx - sr - Math.cos(rad) * sr * 1.8, spy + Math.sin(rad) * sr * 1.2);
+        ctx.stroke();
+        // Droite
+        ctx.beginPath();
+        ctx.moveTo(spx + sr, spy);
+        ctx.lineTo(spx + sr + Math.cos(rad) * sr * 1.8, spy + Math.sin(rad) * sr * 1.2);
+        ctx.stroke();
+      });
+
+      // Yeux araignée
+      ctx.fillStyle = '#ff0044';
+      ctx.beginPath();
+      ctx.arc(spx - sr * 0.3, spy - sr * 0.2, sr * 0.2, 0, Math.PI * 2);
+      ctx.arc(spx + sr * 0.3, spy - sr * 0.2, sr * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bordure arrondie décorative
+      ctx.strokeStyle = 'rgba(0, 255, 204, 0.3)';
+      ctx.lineWidth = u * 2;
+      ctx.beginPath();
+      ctx.roundRect(u * 2, u * 2, s - u * 4, s - u * 4, u * 10);
+      ctx.stroke();
+    }
+
+    function generateAll() {
+      const previews = document.getElementById('previews');
+      const status = document.getElementById('status');
+      previews.innerHTML = '';
+      status.textContent = 'Génération en cours...';
+
+      // Seed fixe pour les étoiles (même rendu à chaque fois)
+      const originalRandom = Math.random;
+
+      SIZES.forEach((size, i) => {
+        setTimeout(() => {
+          // Reset seed-like via position fixe des étoiles
+          Math.random = (() => {
+            let seed = 42 + size;
+            return () => {
+              seed = (seed * 9301 + 49297) % 233280;
+              return seed / 233280;
+            };
+          })();
+
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          canvas.title = `icon-${size}.png`;
+
+          // Affichage preview à taille fixe
+          const preview = canvas.cloneNode();
+          preview.style.width = '96px';
+          preview.style.height = '96px';
+          preview.style.imageRendering = 'pixelated';
+          drawIcon(canvas, size);
+
+          // Copie le rendu dans le canvas de preview
+          const pCtx = preview.getContext('2d');
+          drawIcon(preview, 96);
+
+          const label = document.createElement('div');
+          label.textContent = `${size}×${size}`;
+          label.style.textAlign = 'center';
+          label.style.fontSize = '12px';
+
+          const wrap = document.createElement('div');
+          wrap.style.display = 'inline-block';
+          wrap.style.textAlign = 'center';
+          wrap.style.margin = '8px';
+          wrap.appendChild(preview);
+          wrap.appendChild(label);
+          previews.appendChild(wrap);
+
+          // Téléchargement
+          canvas.toBlob(blob => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `icon-${size}.png`;
+            a.click();
+          }, 'image/png');
+
+          Math.random = originalRandom;
+
+          if (i === SIZES.length - 1) {
+            status.textContent = `✅ ${SIZES.length} icônes téléchargées ! Place-les dans un dossier "icons/" à la racine de ton projet.`;
+          }
+        }, i * 200);
+      });
+    }
+  </script>
+</body>
+</html>
